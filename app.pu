@@ -1,0 +1,60 @@
+import streamlit as st
+
+def parse_orders(text):
+    lines = text.strip().split("\n")
+    drivers = {}
+    pending_request = None
+    request_type = None
+    request_queue = []
+
+    for line in lines:
+        lower_line = line.lower()
+
+        # cek apakah ini request order (anjem / jastip)
+        if "anjem" in lower_line or "jastip" in lower_line:
+            if "anjem" in lower_line:
+                request_type = "anjem"
+            else:
+                request_type = "jastip"
+            request_queue.append(request_type)
+
+        # cek apakah ini jawaban driver (ready / redi / dsb)
+        elif "ready" in lower_line or "redi" in lower_line:
+            parts = line.split(":")
+            if len(parts) > 1:
+                driver = parts[1].strip()
+            else:
+                driver = parts[0].strip()
+
+            if request_queue:
+                current_request = request_queue.pop(0)
+                if driver not in drivers:
+                    drivers[driver] = {"total": 0, "anjem": 0, "jastip": 0}
+                drivers[driver]["total"] += 1
+                drivers[driver][current_request] += 1
+
+    return drivers
+
+
+st.title("📊 Laporan Orderan StudEX")
+
+st.write("Upload copy-paste chat WhatsApp di bawah, lalu klik tombol untuk menghitung laporan orderan.")
+
+input_text = st.text_area("Masukkan teks WhatsApp di sini:")
+
+if st.button("Hitung Laporan"):
+    if input_text.strip() == "":
+        st.warning("Tolong masukkan teks dulu.")
+    else:
+        result = parse_orders(input_text)
+        if not result:
+            st.info("Tidak ada orderan yang terdeteksi.")
+        else:
+            st.subheader("Hasil Laporan:")
+            for driver, data in result.items():
+                st.write(f"- **{driver}**: total {data['total']} orderan "
+                         f"({data['anjem']} anjem dan {data['jastip']} jastip)")
+
+            total_orders = sum(data["total"] for data in result.values())
+            st.success(f"✅ Total semua orderan: {total_orders}")
+            
